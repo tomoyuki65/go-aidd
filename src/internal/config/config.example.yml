@@ -1,0 +1,9 @@
+issue:
+  # provider: GitHub (other options may include Notion in the future)
+  provider: "GitHub"
+  label: "AI DD"
+github:
+  repository: "owner/repository-name"
+ai:
+  # model: Gemini CLI (other options may include Claude Code in the future)
+  model: "Gemini CLI"

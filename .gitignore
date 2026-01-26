@@ -1,0 +1,7 @@
+.DS_Store
+.env
+config.yml
+/src/tmp
+/src/bin
+/images
+task.md

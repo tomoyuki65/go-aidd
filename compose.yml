@@ -1,0 +1,10 @@
+services:
+  app:
+    container_name: go-app
+    build:
+      context: .
+      dockerfile: ./docker/local/go/Dockerfile
+    volumes:
+      - ./src:/go/src
+    ports:
+      - "8080:8080"
