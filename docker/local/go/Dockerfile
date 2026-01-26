@@ -4,12 +4,12 @@ WORKDIR /go/src
 
 COPY ./src .
 
-# go.modがあれば依存関係をインストール
+# Install dependencies if go.mod exists
 RUN if [ -f ./go.mod ]; then \
       go install ./...; \
     fi
 
-# 開発用のライブラリをインストール
+# Install development libraries
 RUN go install honnef.co/go/tools/cmd/staticcheck@latest
 
 EXPOSE 8080
