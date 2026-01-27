@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/tomoyuki65/go-aidd/internal/config"
-	"github.com/tomoyuki65/go-aidd/internal/provider/github"
 	"github.com/tomoyuki65/go-aidd/internal/provider/container"
+	"github.com/tomoyuki65/go-aidd/internal/provider/github"
 )
 
 // Generate "task.md" from task information
