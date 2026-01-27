@@ -2,5 +2,5 @@
 .env
 config.yml
 /src/tmp
-/images
+/src/images
 task.md

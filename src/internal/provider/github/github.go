@@ -49,7 +49,7 @@ func GenerateTaskMd(repository, label string) error {
 	}
 
 	// Write to task.md
-	file, err := os.Create("task.md")
+	file, err := os.Create("src/task.md")
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
@@ -75,7 +75,7 @@ func GenerateTaskMd(repository, label string) error {
 		// Process each extracted URL
 		for i, url := range urls {
 			// Prepare local file path for saving issue images
-			imgDir := fmt.Sprintf("./images/issue_%d", issue.Number)
+			imgDir := fmt.Sprintf("./src/images/issue_%d", issue.Number)
 			os.MkdirAll(imgDir, 0755)
 
 			fileName := fmt.Sprintf("img_%d.png", i+1)
