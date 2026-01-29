@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -20,11 +24,11 @@ type Task struct {
 }
 
 // Generate "task.md" from task information
-func generateTaskMd(provider, repository, label string) error {
+func generateTaskMd(cfg *config.Config) error {
 	// Switch processing by provider
-	switch provider {
+	switch cfg.Issue.Provider {
 	case "GitHub":
-		return github.GenerateTaskMd(repository, label)
+		return github.GenerateTaskMd(cfg.GitHub.Repository, cfg.Issue.Label)
 	case "container":
 		return container.ExecContainer()
 	default:
@@ -32,8 +36,85 @@ func generateTaskMd(provider, repository, label string) error {
 	}
 }
 
+// Load task information from task.md
+func loadTaskMd() ([]Task, error) {
+	// Set path for task.md
+	exePath, _ := os.Executable()
+	binDir := filepath.Dir(exePath)
+	path := filepath.Join(binDir, "..", "task.md")
+
+	if os.Getenv("ENV") == "local" {
+		path = "task.md"
+	}
+
+	// Open task.md
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// Retrieve task information
+	var tasks []Task
+	scanner := bufio.NewScanner(file)
+	lineNum := 0
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		lineNum++
+
+		// Skip header and separator lines
+		if lineNum <= 2 {
+			continue
+		}
+
+		// Skip empty lines
+		if line == "" {
+			continue
+		}
+
+		// Split by |
+		cols := strings.Split(line, "|")
+		// In Markdown tables, cells at the start and end are blank, so fewer than 4 cells is an error
+		if len(cols) < 4 {
+			return nil, errors.New("invalid table row at line " + strconv.Itoa(lineNum))
+		}
+
+		// Trim each item
+		numberStr := strings.TrimSpace(cols[1])
+		title := strings.TrimSpace(cols[2])
+		body := strings.TrimSpace(cols[3])
+
+		// Convert to number
+		number, err := strconv.Atoi(numberStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid number at line %d: %v", lineNum, err)
+		}
+
+		// Convert <br> in body to newline ("\n")
+		body = strings.ReplaceAll(body, "<br>", "\n")
+
+		tasks = append(tasks, Task{
+			Number: number,
+			Title:  title,
+			Body:   body,
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
+}
+
+func runTask(cfg *config.Config, task Task) {
+	// 実行する処理を記述
+	//
+}
+
 // Display task details
-func showTaskDetail(app *tview.Application, pages *tview.Pages, task Task) {
+func showTaskDetail(cfg *config.Config, app *tview.Application, pages *tview.Pages, task Task) {
 	description := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText("[yellow]Would you like to run this task ?[-]")
@@ -98,7 +179,7 @@ func showTaskDetail(app *tview.Application, pages *tview.Pages, task Task) {
 }
 
 // Task list display process
-func renderTasks(app *tview.Application, taskList *tview.List, pages *tview.Pages, tasks []Task, currentPage, pageSize *int) {
+func renderTasks(cfg *config.Config, app *tview.Application, taskList *tview.List, pages *tview.Pages, tasks []Task, currentPage, pageSize *int) {
 	taskList.Clear()
 
 	// Calculate the page range
@@ -113,7 +194,7 @@ func renderTasks(app *tview.Application, taskList *tview.List, pages *tview.Page
 		task := t
 		taskList.AddItem(fmt.Sprintf("%d. %s", task.Number, task.Title), "", 0, func() {
 			// Display task details
-			showTaskDetail(app, pages, task)
+			showTaskDetail(cfg, app, pages, task)
 		})
 	}
 
@@ -124,13 +205,13 @@ func renderTasks(app *tview.Application, taskList *tview.List, pages *tview.Page
 	if end < len(tasks) {
 		taskList.AddItem("▶ Next page", "", 'n', func() {
 			*currentPage++
-			renderTasks(app, taskList, pages, tasks, currentPage, pageSize)
+			renderTasks(cfg, app, taskList, pages, tasks, currentPage, pageSize)
 		})
 	}
 	if *currentPage > 0 {
 		taskList.AddItem("◀ Back page", "", 'b', func() {
 			*currentPage--
-			renderTasks(app, taskList, pages, tasks, currentPage, pageSize)
+			renderTasks(cfg, app, taskList, pages, tasks, currentPage, pageSize)
 		})
 	}
 
@@ -188,7 +269,7 @@ func main() {
 
 			go func() {
 				// Generate "task.md"
-				err := generateTaskMd(cfg.Issue.Provider, cfg.GitHub.Repository, cfg.Issue.Label)
+				err := generateTaskMd(cfg)
 
 				// Screen update settings
 				app.QueueUpdateDraw(func() {
@@ -225,23 +306,20 @@ func main() {
 			taskCurrentPage = 0
 
 			// Load task information from task.md
-			tasks := []Task{
-				{1, "サーバー再起動", "本番サーバーを再起動します"},
-				{2, "ログ削除", "古いログファイルを削除します"},
-				{3, "バックアップ", "DBのバックアップを取ります\naaa\naaa\naaaa\naaa\naaa\naaaaaaa\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
-				{4, "バックアップ", "DBのバックアップを取ります"},
-				{5, "バックアップ", "DBのバックアップを取ります"},
-				{6, "バックアップ", "DBのバックアップを取ります"},
-				{7, "バックアップ", "DBのバックアップを取ります"},
-				{8, "バックアップ", "DBのバックアップを取ります"},
-				{9, "バックアップ", "DBのバックアップを取ります"},
-				{10, "バックアップ", "DBのバックアップを取ります"},
-				{11, "バックアップ", "DBのバックアップを取ります"},
-				{12, "バックアップ", "DBのバックアップを取ります"},
+			tasks, err := loadTaskMd()
+			if err != nil {
+				errorModal := tview.NewModal().
+					SetText(fmt.Sprintf("[yellow][::b]An error occurred !![::-]\n\n%v", err)).
+					AddButtons([]string{"OK"}).
+					SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+						pages.RemovePage("error")
+					})
+				pages.AddPage("error", errorModal, true, true)
+				return
 			}
 
 			// Display the task list
-			renderTasks(app, taskSelectList, pages, tasks, &taskCurrentPage, &taskPageSize)
+			renderTasks(cfg, app, taskSelectList, pages, tasks, &taskCurrentPage, &taskPageSize)
 			pages.SwitchToPage("task_menu")
 		}).
 		AddItem("Quit", "", 'q', func() {
