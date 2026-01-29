@@ -108,10 +108,10 @@ func loadTaskMd() ([]Task, error) {
 	return tasks, nil
 }
 
-func runTask(cfg *config.Config, task Task) {
-	// 実行する処理を記述
-	//
-}
+// func runTask(cfg *config.Config, task Task) {
+// 	// 実行する処理を記述
+// 	//
+// }
 
 // Display task details
 func showTaskDetail(cfg *config.Config, app *tview.Application, pages *tview.Pages, task Task) {
@@ -233,7 +233,7 @@ func main() {
 
 	// Configure task list page management
 	taskCurrentPage := 0
-	taskPageSize := 5
+	taskPageSize := cfg.Task.ListPageSize
 
 	// Set up common components
 	separator := tview.NewTextView().

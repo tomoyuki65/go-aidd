@@ -4,6 +4,8 @@ issue:
   label: "AI DD"
 github:
   repository: "owner/repository-name"
+task:
+  list_page_size: 5
 ai:
   # model: Gemini CLI (other options may include Claude Code in the future)
   model: "Gemini CLI"

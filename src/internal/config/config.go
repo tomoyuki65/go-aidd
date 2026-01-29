@@ -18,6 +18,9 @@ type Config struct {
 	GitHub struct {
 		Repository string `koanf:"repository"`
 	} `koanf:"github"`
+	Task struct {
+		ListPageSize int `koanf:"list_page_size"`
+	} `koanf:"task"`
 	AI struct {
 		Model string `koanf:"model"`
 	} `koanf:"ai"`
