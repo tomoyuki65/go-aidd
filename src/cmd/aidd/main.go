@@ -2,12 +2,22 @@ package main
 
 import (
 	"errors"
-	"log"
+	"fmt"
+	"strings"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 
 	"github.com/tomoyuki65/go-aidd/internal/config"
 	"github.com/tomoyuki65/go-aidd/internal/provider/container"
 	"github.com/tomoyuki65/go-aidd/internal/provider/github"
 )
+
+type Task struct {
+	Number int
+	Title  string
+	Body   string
+}
 
 // Generate "task.md" from task information
 func generateTaskMd(provider, repository, label string) error {
@@ -22,12 +32,237 @@ func generateTaskMd(provider, repository, label string) error {
 	}
 }
 
+// Display task details
+func showTaskDetail(app *tview.Application, pages *tview.Pages, task Task) {
+	description := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText("[yellow]Would you like to run this task ?[-]")
+
+	separator := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText("------------------------------------------------------------------------------------------")
+
+	taskInfoText := fmt.Sprintf("Number: %d\nTitle: %s\n\nBody:\n-----\n%s", task.Number, task.Title, task.Body)
+
+	taskInfo := tview.NewTextView().
+		SetDynamicColors(true).
+		SetWordWrap(true).
+		SetText(taskInfoText)
+
+	// Confirmation form settings
+	confirmForm := tview.NewForm().
+		AddButton("Back", func() {
+			// Remove task details from the page settings and return
+			pages.RemovePage("task_detail")
+		}).
+		AddButton("Run", func() {
+			// 実行する処理を記述
+			//
+			//
+		})
+
+	// Allow arrow key navigation between buttons
+	confirmForm.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyDown, tcell.KeyRight:
+			return tcell.NewEventKey(tcell.KeyTab, 0, tcell.ModNone)
+		case tcell.KeyUp, tcell.KeyLeft:
+			return tcell.NewEventKey(tcell.KeyBacktab, 0, tcell.ModNone)
+		}
+		return event
+	})
+
+	// Set task information height
+	taskInfoHeight := strings.Count(task.Body, "\n") + 6
+
+	taskDetailView := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(taskInfo, taskInfoHeight, 1, false).
+		AddItem(confirmForm, 0, 1, true)
+
+	//  Set task details height to 18 or higher
+	taskDetailHeight := 18 + taskInfoHeight
+
+	taskDetail := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(description, 2, 1, false).
+		AddItem(separator, 1, 1, false).
+		AddItem(taskDetailView, taskDetailHeight, 1, true).
+		AddItem(separator, 1, 1, false).
+		AddItem(nil, 0, 1, false)
+	taskDetail.SetBorder(true).SetTitle(" Task detail ")
+
+	// Add task details to the page settings and display them (focus on the confirmation form)
+	pages.AddPage("task_detail", taskDetail, true, true)
+	app.SetFocus(confirmForm)
+}
+
+// Task list display process
+func renderTasks(app *tview.Application, taskList *tview.List, pages *tview.Pages, tasks []Task, currentPage, pageSize *int) {
+	taskList.Clear()
+
+	// Calculate the page range
+	start := *currentPage * *pageSize
+	end := start + *pageSize
+	if end > len(tasks) {
+		end = len(tasks)
+	}
+
+	// Display the task list for the current page
+	for _, t := range tasks[start:end] {
+		task := t
+		taskList.AddItem(fmt.Sprintf("%d. %s", task.Number, task.Title), "", 0, func() {
+			// Display task details
+			showTaskDetail(app, pages, task)
+		})
+	}
+
+	// Set up pagination
+	pagination := fmt.Sprintf("[green]-- page: %d / %d --[-]", *currentPage+1, (len(tasks)-1) / *pageSize + 1)
+	taskList.AddItem(pagination, "", 0, nil)
+
+	if end < len(tasks) {
+		taskList.AddItem("▶ Next page", "", 'n', func() {
+			*currentPage++
+			renderTasks(app, taskList, pages, tasks, currentPage, pageSize)
+		})
+	}
+	if *currentPage > 0 {
+		taskList.AddItem("◀ Back page", "", 'b', func() {
+			*currentPage--
+			renderTasks(app, taskList, pages, tasks, currentPage, pageSize)
+		})
+	}
+
+	// Handle returning to the main menu
+	taskList.AddItem("Return to the main menu", "", 'r', func() {
+		pages.SwitchToPage("main_menu")
+	})
+}
+
 func main() {
 	// Load configuration
 	cfg := config.LoadConfig()
 
-	// Generate "task.md" from task info
-	if err := generateTaskMd(cfg.Issue.Provider, cfg.GitHub.Repository, cfg.Issue.Label); err != nil {
-		log.Fatalf("failed to generate file 'task.md': %v", err)
+	// Define the app using tview (mouse enabled)
+	app := tview.NewApplication().EnableMouse(true)
+
+	// Define pages
+	pages := tview.NewPages()
+
+	// Configure task list page management
+	taskCurrentPage := 0
+	taskPageSize := 5
+
+	// Set up common components
+	separator := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText("------------------------------------------------------------------------------------------")
+
+	// -- Task List Settings --
+	taskDescription := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText("[yellow]Please select the task you want to run.[-]")
+
+	taskSelectList := tview.NewList()
+
+	taskMenu := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(taskDescription, 2, 1, false).
+		AddItem(separator, 1, 1, false).
+		AddItem(taskSelectList, 18, 1, true).
+		AddItem(separator, 1, 1, false).
+		AddItem(nil, 0, 1, false)
+	taskMenu.SetBorder(true).SetTitle(" Task list menu ")
+
+	// -- Main Menu Settings --
+	mainDescription := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText("[yellow]Please select from the following menu.[-]")
+
+	mainSelectList := tview.NewList().
+		AddItem("[::b]・Retrieve the issue information and create or update task.md.[::-]", "", '1', func() {
+			// Generating modal settings
+			generating := tview.NewModal().SetText("Generating...")
+			pages.AddPage("generating", generating, true, true)
+
+			go func() {
+				// Generate "task.md"
+				err := generateTaskMd(cfg.Issue.Provider, cfg.GitHub.Repository, cfg.Issue.Label)
+
+				// Screen update settings
+				app.QueueUpdateDraw(func() {
+					pages.RemovePage("generating")
+
+					// Force redraw to fix UI corruption
+					app.Sync()
+
+					// In case of an error
+					if err != nil {
+						errorModal := tview.NewModal().
+							SetText(fmt.Sprintf("[yellow][::b]An error occurred !![::-]\n\n%v", err)).
+							AddButtons([]string{"OK"}).
+							SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+								pages.RemovePage("error")
+							})
+						pages.AddPage("error", errorModal, true, true)
+						return
+					}
+
+					// Success message
+					successModal := tview.NewModal().
+						SetText("task.md has been generated successfully !!").
+						AddButtons([]string{"Close"}).
+						SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+							pages.RemovePage("success")
+						})
+					pages.AddPage("success", successModal, true, true)
+				})
+			}()
+		}).
+		AddItem("[::b]・Read task.md and display the list of tasks.[::-]", "", '2', func() {
+			// Initialize the current page of the task list to 0
+			taskCurrentPage = 0
+
+			// Load task information from task.md
+			tasks := []Task{
+				{1, "サーバー再起動", "本番サーバーを再起動します"},
+				{2, "ログ削除", "古いログファイルを削除します"},
+				{3, "バックアップ", "DBのバックアップを取ります\naaa\naaa\naaaa\naaa\naaa\naaaaaaa\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+				{4, "バックアップ", "DBのバックアップを取ります"},
+				{5, "バックアップ", "DBのバックアップを取ります"},
+				{6, "バックアップ", "DBのバックアップを取ります"},
+				{7, "バックアップ", "DBのバックアップを取ります"},
+				{8, "バックアップ", "DBのバックアップを取ります"},
+				{9, "バックアップ", "DBのバックアップを取ります"},
+				{10, "バックアップ", "DBのバックアップを取ります"},
+				{11, "バックアップ", "DBのバックアップを取ります"},
+				{12, "バックアップ", "DBのバックアップを取ります"},
+			}
+
+			// Display the task list
+			renderTasks(app, taskSelectList, pages, tasks, &taskCurrentPage, &taskPageSize)
+			pages.SwitchToPage("task_menu")
+		}).
+		AddItem("Quit", "", 'q', func() {
+			app.Stop()
+		})
+
+	mainMenu := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(mainDescription, 2, 1, false).
+		AddItem(separator, 1, 1, false).
+		AddItem(mainSelectList, 6, 1, true).
+		AddItem(separator, 1, 1, false).
+		AddItem(nil, 0, 1, false)
+	mainMenu.SetBorder(true).SetTitle(" Main menu ")
+
+	// -- Screen setup --
+	pages.AddPage("main_menu", mainMenu, true, true)
+	pages.AddPage("task_menu", taskMenu, true, false)
+
+	// App startup process
+	if err := app.SetRoot(pages, true).Run(); err != nil {
+		panic(err)
 	}
 }
