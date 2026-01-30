@@ -3,9 +3,10 @@ issue:
   provider: "GitHub"
   label: "AI DD"
 github:
+  # Please set the target repository
   repository: "owner/repository-name"
-  # Options: ssh, https, github_cli
-  clone_type: "ssh"
+  # Options: SSH, HTTPS, GitHub CLI
+  clone_type: "SSH"
   clone_branch: "main"
   push_branch_on_complete: true
   create_pr_on_complete: true

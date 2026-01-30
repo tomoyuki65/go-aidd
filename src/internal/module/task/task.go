@@ -124,13 +124,13 @@ func RunTask(cfg *config.Config, task Task) error {
 	// Clone the target repository and move into its directory
 	var cmdGitClone *exec.Cmd
 	switch cfg.GitHub.CloneType {
-	case "ssh":
+	case "SSH":
 		repositoryURL := fmt.Sprintf("git@github.com:%s.git", cfg.GitHub.Repository)
 		cmdGitClone = exec.Command("git", "clone", "-b", cfg.GitHub.CloneBranch, "--single-branch", repositoryURL)
-	case "https":
+	case "HTTPS":
 		repositoryURL := fmt.Sprintf("https://github.com/%s.git", cfg.GitHub.Repository)
 		cmdGitClone = exec.Command("git", "clone", "-b", cfg.GitHub.CloneBranch, "--single-branch", repositoryURL)
-	case "github_cli":
+	case "GitHub CLI":
 		cmdGitClone = exec.Command("gh", "repo", "clone", cfg.GitHub.Repository, "--branch", cfg.GitHub.CloneBranch, "--single-branch")
 	default:
 		// Return to the current directory
