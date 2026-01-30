@@ -1,127 +1,26 @@
 package main
 
 import (
-	"bufio"
-	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
 	"github.com/tomoyuki65/go-aidd/internal/config"
-	"github.com/tomoyuki65/go-aidd/internal/provider/container"
-	"github.com/tomoyuki65/go-aidd/internal/provider/github"
+	mt "github.com/tomoyuki65/go-aidd/internal/module/task"
 )
 
-type Task struct {
-	Number int
-	Title  string
-	Body   string
-}
-
-// Generate "task.md" from task information
-func generateTaskMd(cfg *config.Config) error {
-	// Switch processing by provider
-	switch cfg.Issue.Provider {
-	case "GitHub":
-		return github.GenerateTaskMd(cfg.GitHub.Repository, cfg.Issue.Label)
-	case "container":
-		return container.ExecContainer()
-	default:
-		return errors.New("unsupported provider is set")
-	}
-}
-
-// Load task information from task.md
-func loadTaskMd() ([]Task, error) {
-	// Set path for task.md
-	exePath, _ := os.Executable()
-	binDir := filepath.Dir(exePath)
-	path := filepath.Join(binDir, "..", "task.md")
-
-	if os.Getenv("ENV") == "local" {
-		path = "task.md"
-	}
-
-	// Open task.md
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	// Retrieve task information
-	var tasks []Task
-	scanner := bufio.NewScanner(file)
-	lineNum := 0
-
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		lineNum++
-
-		// Skip header and separator lines
-		if lineNum <= 2 {
-			continue
-		}
-
-		// Skip empty lines
-		if line == "" {
-			continue
-		}
-
-		// Split by |
-		cols := strings.Split(line, "|")
-		// In Markdown tables, cells at the start and end are blank, so fewer than 4 cells is an error
-		if len(cols) < 4 {
-			return nil, errors.New("invalid table row at line " + strconv.Itoa(lineNum))
-		}
-
-		// Trim each item
-		numberStr := strings.TrimSpace(cols[1])
-		title := strings.TrimSpace(cols[2])
-		body := strings.TrimSpace(cols[3])
-
-		// Convert to number
-		number, err := strconv.Atoi(numberStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid number at line %d: %v", lineNum, err)
-		}
-
-		// Convert <br> in body to newline ("\n")
-		body = strings.ReplaceAll(body, "<br>", "\n")
-
-		tasks = append(tasks, Task{
-			Number: number,
-			Title:  title,
-			Body:   body,
-		})
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return tasks, nil
-}
-
-// func runTask(cfg *config.Config, task Task) {
-// 	// 実行する処理を記述
-// 	//
-// }
+// Set up common components
+var separator *tview.TextView = tview.NewTextView().
+	SetDynamicColors(true).
+	SetText("------------------------------------------------------------------------------------------")
 
 // Display task details
-func showTaskDetail(cfg *config.Config, app *tview.Application, pages *tview.Pages, task Task) {
+func showTaskDetail(cfg *config.Config, app *tview.Application, pages *tview.Pages, task mt.Task) {
 	description := tview.NewTextView().
 		SetDynamicColors(true).
 		SetText("[yellow]Would you like to run this task ?[-]")
-
-	separator := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText("------------------------------------------------------------------------------------------")
 
 	taskInfoText := fmt.Sprintf("Number: %d\nTitle: %s\n\nBody:\n-----\n%s", task.Number, task.Title, task.Body)
 
@@ -137,9 +36,44 @@ func showTaskDetail(cfg *config.Config, app *tview.Application, pages *tview.Pag
 			pages.RemovePage("task_detail")
 		}).
 		AddButton("Run", func() {
-			// 実行する処理を記述
-			//
-			//
+			// Task running modal settings
+			taskRunningModal := tview.NewModal().SetText("Task running......")
+			pages.AddPage("task_running_modal", taskRunningModal, true, true)
+
+			go func() {
+				// タスク実行
+				err := mt.RunTask(cfg, task)
+
+				// Screen update settings
+				app.QueueUpdateDraw(func() {
+					pages.RemovePage("task_running_modal")
+
+					// Force redraw to fix UI corruption
+					app.Sync()
+
+					// In case of an error
+					if err != nil {
+						errorModal := tview.NewModal().
+							SetText(fmt.Sprintf("[yellow][::b]An error occurred !![::-]\n\n%v", err)).
+							AddButtons([]string{"OK"}).
+							SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+								pages.RemovePage("error")
+							})
+						pages.AddPage("error", errorModal, true, true)
+						return
+					}
+
+					// Success message
+					successModal := tview.NewModal().
+						SetText("Task completed successfully !!").
+						AddButtons([]string{"Close"}).
+						SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+							pages.RemovePage("success")
+							pages.RemovePage("task_detail")
+						})
+					pages.AddPage("success", successModal, true, true)
+				})
+			}()
 		})
 
 	// Allow arrow key navigation between buttons
@@ -179,7 +113,7 @@ func showTaskDetail(cfg *config.Config, app *tview.Application, pages *tview.Pag
 }
 
 // Task list display process
-func renderTasks(cfg *config.Config, app *tview.Application, taskList *tview.List, pages *tview.Pages, tasks []Task, currentPage, pageSize *int) {
+func renderTasks(cfg *config.Config, app *tview.Application, taskList *tview.List, pages *tview.Pages, tasks []mt.Task, currentPage, pageSize *int) {
 	taskList.Clear()
 
 	// Calculate the page range
@@ -235,11 +169,6 @@ func main() {
 	taskCurrentPage := 0
 	taskPageSize := cfg.Task.ListPageSize
 
-	// Set up common components
-	separator := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText("------------------------------------------------------------------------------------------")
-
 	// -- Task List Settings --
 	taskDescription := tview.NewTextView().
 		SetDynamicColors(true).
@@ -264,16 +193,16 @@ func main() {
 	mainSelectList := tview.NewList().
 		AddItem("[::b]・Retrieve the issue information and create or update task.md.[::-]", "", '1', func() {
 			// Generating modal settings
-			generating := tview.NewModal().SetText("Generating...")
-			pages.AddPage("generating", generating, true, true)
+			generatingModal := tview.NewModal().SetText("Generating...")
+			pages.AddPage("generating_modal", generatingModal, true, true)
 
 			go func() {
 				// Generate "task.md"
-				err := generateTaskMd(cfg)
+				err := mt.GenerateTaskMd(cfg)
 
 				// Screen update settings
 				app.QueueUpdateDraw(func() {
-					pages.RemovePage("generating")
+					pages.RemovePage("generating_modal")
 
 					// Force redraw to fix UI corruption
 					app.Sync()
@@ -306,7 +235,7 @@ func main() {
 			taskCurrentPage = 0
 
 			// Load task information from task.md
-			tasks, err := loadTaskMd()
+			tasks, err := mt.LoadTaskMd()
 			if err != nil {
 				errorModal := tview.NewModal().
 					SetText(fmt.Sprintf("[yellow][::b]An error occurred !![::-]\n\n%v", err)).

@@ -16,12 +16,18 @@ type Config struct {
 		Label    string `koanf:"label"`
 	} `koanf:"issue"`
 	GitHub struct {
-		Repository string `koanf:"repository"`
+		Repository           string `koanf:"repository"`
+		CloneType            string `koanf:"clone_type"`
+		CloneBranch          string `koanf:"clone_branch"`
+		PushBranchOnComplete bool   `koanf:"push_branch_on_complete"`
+		CreatePrOnComplete   bool   `koanf:"create_pr_on_complete"`
+		PrDraft              bool   `koanf:"pr_draft"`
 	} `koanf:"github"`
 	Task struct {
 		ListPageSize int `koanf:"list_page_size"`
 	} `koanf:"task"`
 	AI struct {
+		Type  string `koanf:"type"`
 		Model string `koanf:"model"`
 	} `koanf:"ai"`
 }
