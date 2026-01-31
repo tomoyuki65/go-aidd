@@ -122,7 +122,7 @@ ai:
 ### 3. Start the app using make
 The pre-built binary files are stored in `/src/bin`. Use the following make commands according to your OS to start the application.  
    
-> ※ Only MacOS (ARM) has been tested.  
+> ※ Only MacOS (ARM) has been tested. Also, if you want to apply changes made to config.yml, you need to restart the application.  
   
 <br>
   
