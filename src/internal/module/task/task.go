@@ -126,6 +126,11 @@ func LoadTaskMd() ([]Task, error) {
 
 // Task execution process
 func RunTask(cfg *config.Config, task Task) error {
+	// Skip if the task’s skip_run_task in the config is true
+	if cfg.Task.SkipRunTask {
+		return nil
+	}
+
 	// Get the current directory
 	currentDir, err := os.Getwd()
 	if err != nil {

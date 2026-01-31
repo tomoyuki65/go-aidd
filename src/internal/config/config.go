@@ -25,6 +25,7 @@ type Config struct {
 	} `koanf:"github"`
 	Task struct {
 		ListPageSize int `koanf:"list_page_size"`
+		SkipRunTask bool `koanf:"skip_run_task"`
 	} `koanf:"task"`
 	AI struct {
 		Type  string `koanf:"type"`

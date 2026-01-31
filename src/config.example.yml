@@ -1,6 +1,7 @@
 issue:
   # Options:
   #   - GitHub
+  #   - container（for local development）
   # (other options may include Notion in the future)
   provider: "GitHub"
   # Specify the label to filter by (default: "AI DD")
@@ -25,6 +26,8 @@ github:
 task:
   # Maximum number of tasks displayed per page in the TUI task list
   list_page_size: 5
+  # Set to true to skip RunTask（for local development）
+  skip_run_task: false
 ai:
   # Options:
   #   - Gemini CLI
