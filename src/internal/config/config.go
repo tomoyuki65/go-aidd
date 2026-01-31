@@ -33,20 +33,31 @@ type Config struct {
 }
 
 func getConfigPath() string {
-	// If the ENV environment variable is set to "local"
-	if os.Getenv("ENV") == "local" {
-		return "config.yml"
+	searchPaths := []string{
+		"config.yml",
+		filepath.Join("src", "config.yml"),
 	}
 
-	// In case of binary execution
-	exePath, _ := os.Executable()
-	binDir := filepath.Dir(exePath)
-	return filepath.Join(binDir, "..", "config.yml")
+	var configPath string
+	var err error
+	for _, path := range searchPaths {
+		if _, err := os.Stat(path); err == nil {
+			configPath = path
+			break
+		}
+	}
+
+	if err != nil {
+		log.Fatalf("No config file found in search paths: %v", err)
+	}
+
+	return configPath
 }
 
 func LoadConfig() *Config {
 	// Load configuration from config.yml
 	configPath := getConfigPath()
+
 	k := koanf.New(".")
 	if err := k.Load(file.Provider(configPath), yaml.Parser()); err != nil {
 		log.Fatalf("failed to load config: %v", err)
