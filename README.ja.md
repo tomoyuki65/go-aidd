@@ -60,5 +60,114 @@ Go-AIDD (AI-Driven Development) は、AI駆動開発用のタスクを管理・�
   
 ## 使い方
   
+### 1. コンフィグ設定用のファイルをリネーム
+以下のコマンドを実行し、コンフィグ設定用のファイルをリネームします。  
+```
+cp src/config.example.yml src/config.yml
+```
+  
+<br>
+  
+### 2.　「config.yml」の内容を修正
+・GitHubから抽出する対象のIssueを指定する際や、タスク完了後のPR作成時に付与するラベル設定を変更したい場合は、issue.labelの値を修正して下さい。  
+```
+issue:
+  label: "AI DD"
+```  
+> ※ ここで設定したラベルを対象リポジトリに作成して下さい。  
+  
+<br>
+  
+・GitHubからタスクを抽出する際や、タスク実行前に対象のリポジトリをクローンするため、`github.repository`の値を修正して下さい。  
+```
+github:
+  repository: "オーナー名/リポジトリ名"
+```  
+  
+<br>
+  
+・リポジトリをクローンする方法を変更したい場合はgithub.clone_typeの値を修正して下さい。  
+```
+github:
+  clone_type: "SSH"
+```
+  
+<br>
+  
+・リポジトリをクローンする際のブランチを変更したい場合はgithub.clone_branchの値を修正して下さい。  
+```
+github:
+  clone_branch: "main"
+```
+  
+<br>
+  
+・タスク完了後のPRをドラフトで作りたい場合は、github.pr_draftの値をtrueに変更して下さい。  
+```
+github:
+  pr_draft: false
+```  
+  
+<br>
+  
+・タスク実行時に利用するAIツールを変更したい場合は、ai.typeの値を修正して下さい。  
+```
+ai:
+  type: "Gemini CLI"
+```  
+> ※ ただし、Gemini CLI以外は動作未検証です。  
+  
+<br>
+  
+### 3. makeコマンドでアプリ起動
+ビルド済みのバイナリファイルを「/src/bin」に格納しているため、OSに合わせて以下のmakeコマンドを利用してアプリを起動して下さい。  
+   
+> ※ ただし、MacOS（ARM）以外は動作未検証です。  
+  
+<br>
+  
+・MacOS（ARM）の場合
+```
+make run-mac
+```
+  
+<br>
+  
+・Linuxの場合
+```
+make run-linux
+```
+  
+<br>
+  
+・Windowsの場合
+```
+make run-windows
+```
+  
+<br>
+  
+### 4. メニューから処理を選択して実行
+アプリを起動するとTUIでメニューが表示されます。   
+以下のメニューがあり、それぞれ実行できます。  
+  
+#### 1. 「・Retrieve the issue information and create or update task.md.」
+このメニューを選択するとコンフィグ設定の内容をもとにたタスク情報を取得し、`src/task.md`にタスク情報を集約します。  
+  
+> ※ タスク情報を集約するためのファイル「src/task.md」は手動で作っても大丈夫です。手動で作りたい場合はサンプルファイル「src/task.example.md」を格納しているため、ファイル名をリネーム後、中身のレイアウトを合わせてファイルを作成して下さい。  
+  
+<br>
+  
+#### 2. 「・Read task.md and display the list of tasks.」
+このメニューを選択すると`src/task.md`からタスク情報を読み込んでタスク一覧を表示します。  
+対象のタスクを選択するとタスクの詳細が表示され、TABキーでフォームを選択してタスクを実行できます。  
+  
+> ※ タスクを実行する際は、事前に対象のリポジトリをworkディレクトリ配下にクローンしてからタスクを実行するようにしています。  
+  
+<br>
+  
+#### 3. 「Quit」
+このメニューを選択するとアプリを終了します。
+  
 <br>
   
