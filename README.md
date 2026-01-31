@@ -173,3 +173,17 @@ This option exits the application.
   
 <br>
   
+## Author / Maintainer
+  
+- 名前: Tomoyuki
+- GitHub: https://github.com/tomoyuki65
+- X (Twitter): https://x.com/tomoyuki65
+- Golang-Tech: https://golang.tomoyuki65.com
+- YouTube: https://www.youtube.com/@tomoyuki_go
+  
+<br>
+  
+## License
+  
+[MIT](LICENSE)
+  

@@ -173,3 +173,17 @@ make run-windows
   
 <br>
   
+## 作成者 / メンテナ
+  
+- 名前: Tomoyuki
+- GitHub: https://github.com/tomoyuki65
+- X (Twitter): https://x.com/tomoyuki65
+- Golang-Tech: https://golang.tomoyuki65.com
+- YouTube: https://www.youtube.com/@tomoyuki_go
+  
+<br>
+  
+## ライセンス
+  
+[MIT](LICENSE)
+  
