@@ -192,6 +192,21 @@ func RunTask(cfg *config.Config, task Task) error {
 		if len(cfg.AI.Model) > 0 {
 			cmdRunTask.Args = append(cmdRunTask.Args, "-m", cfg.AI.Model)
 		}
+	case "Claude Code":
+		cmdRunTask = exec.Command("claude", "-p", task.Body, "-y")
+		if len(cfg.AI.Model) > 0 {
+			cmdRunTask.Args = append(cmdRunTask.Args, "-m", cfg.AI.Model)
+		}
+	case "Codex":
+		cmdRunTask = exec.Command("codex", "-y", task.Body)
+		if len(cfg.AI.Model) > 0 {
+			cmdRunTask = exec.Command("codex", "-y", "--model", cfg.AI.Model, task.Body)
+		}
+	case "GitHub Copilot CLI":
+		cmdRunTask = exec.Command("copilot", "-p", task.Body, "--allow-all-tools")
+		if len(cfg.AI.Model) > 0 {
+			cmdRunTask.Args = append(cmdRunTask.Args, "--model", cfg.AI.Model)
+		}
 	default:
 		os.Chdir(currentDir)
 		return errors.New("unsupported AI type is set")

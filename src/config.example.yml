@@ -1,20 +1,37 @@
 issue:
-  # Options: Gemini CLI (other options may include Notion in the future)
+  # Options:
+  #   - GitHub
+  # (other options may include Notion in the future)
   provider: "GitHub"
+  # Specify the label to filter by (default: "AI DD")
   label: "AI DD"
 github:
   # Please set the target repository
   repository: "owner/repository-name"
-  # Options: SSH, HTTPS, GitHub CLI
+  # Options:
+  #   - SSH
+  #   - HTTPS
+  #   - GitHub CLI
   clone_type: "SSH"
+  # Specify the branch to clone
   clone_branch: "main"
+  # Whether to automatically push the branch after processing
   push_branch_on_complete: true
+  # Whether to automatically create a pull request after processing.
+  # (This requires `push_branch_on_complete` to be set to true.)
   create_pr_on_complete: true
+  # Whether to create the pull request as a draft
   pr_draft: false
 task:
+  # Maximum number of tasks displayed per page in the TUI task list
   list_page_size: 5
 ai:
-  # Options: Gemini CLI (other options may include Claude Code in the future)
+  # Options:
+  #   - Gemini CLI
+  #   - Claude Code
+  #   - Codex
+  #   - GitHub Copilot CLI
+  # Note: Only Gemini CLI has been tested; other options are unverified
   type: "Gemini CLI"
   # Set when you want to specify the model (e.g., gemini-2.5-pro、gemini-2.5-flash)
   model: ""
