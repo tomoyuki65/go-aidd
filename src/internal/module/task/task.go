@@ -35,19 +35,36 @@ func GenerateTaskMd(cfg *config.Config) error {
 	}
 }
 
-// Load task information from task.md
-func LoadTaskMd() ([]Task, error) {
-	// Set path for task.md
-	exePath, _ := os.Executable()
-	binDir := filepath.Dir(exePath)
-	path := filepath.Join(binDir, "..", "task.md")
-
-	if os.Getenv("ENV") == "local" {
-		path = "task.md"
+func getTaskMdPath() (string, error) {
+	searchPaths := []string{
+		"task.md",
+		filepath.Join("src", "task.md"),
 	}
 
+	var taskMdPath string
+	for _, path := range searchPaths {
+		if _, err := os.Stat(path); err == nil {
+			taskMdPath = path
+			break
+		}
+	}
+
+	if taskMdPath == "" {
+		return "", errors.New("no task.md found in search paths")
+	}
+
+	return taskMdPath, nil
+}
+
+// Load task information from task.md
+func LoadTaskMd() ([]Task, error) {
 	// Open task.md
-	file, err := os.Open(path)
+	taskMdPath, err := getTaskMdPath()
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Open(taskMdPath)
 	if err != nil {
 		return nil, err
 	}

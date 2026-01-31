@@ -49,7 +49,7 @@ func GenerateTaskMd(repository, label string) error {
 	}
 
 	// Write to task.md
-	file, err := os.Create("src/task.md")
+	file, err := os.Create(filepath.Join("src", "task.md"))
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
@@ -75,7 +75,7 @@ func GenerateTaskMd(repository, label string) error {
 		// Process each extracted URL
 		for i, url := range urls {
 			// Prepare local file path for saving issue images
-			imgDir := fmt.Sprintf("./src/images/issue_%d", issue.Number)
+			imgDir := filepath.Join("src", "images", fmt.Sprintf("issue_%d", issue.Number))
 			os.MkdirAll(imgDir, 0755)
 
 			fileName := fmt.Sprintf("img_%d.png", i+1)
@@ -84,7 +84,7 @@ func GenerateTaskMd(repository, label string) error {
 			// Download the image and save it to a local file
 			if err := dl.SaveImages("GitHub", url, token, filePath); err == nil {
 				// Replace the image URL in the issue body with the local image path
-				relPath := fmt.Sprintf("./images/issue_%d/%s", issue.Number, fileName)
+				relPath := filepath.Join("images", fmt.Sprintf("issue_%d", issue.Number), fileName)
 				safeBody = strings.ReplaceAll(safeBody, url, relPath)
 			} else {
 				return fmt.Errorf("failed to download image: %w", err)

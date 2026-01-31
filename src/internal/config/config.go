@@ -39,7 +39,6 @@ func getConfigPath() string {
 	}
 
 	var configPath string
-	var err error
 	for _, path := range searchPaths {
 		if _, err := os.Stat(path); err == nil {
 			configPath = path
@@ -47,8 +46,8 @@ func getConfigPath() string {
 		}
 	}
 
-	if err != nil {
-		log.Fatalf("No config file found in search paths: %v", err)
+	if configPath == "" {
+		log.Fatal("no config.yml found in search paths")
 	}
 
 	return configPath
