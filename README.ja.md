@@ -21,3 +21,44 @@ Go-AIDD (AI-Driven Development) は、AI駆動開発用のタスクを管理・�
   
 <br>
   
+## 開発の背景
+今後のソフトウェア開発では、**「AI駆動開発」** が中心的な手法となることが予想されます。  
+効率的にAI駆動開発を進めるには、設計段階でタスクをAIによる自動処理がしやすい形に分割し、それらを適切にAIツールで処理することが重要です。  
+  
+本ツールでは、分割した複数のAIタスクを`task.md`に集約し、対象のタスクを選択するだけでAIに処理させることができます。さらに、タスクを並列実行することで、開発スピードを大幅に向上させることが可能です。  
+  
+また、ローカル環境で利用中のAIツールを活用するため、余分なネットワークコストがかからず、セキュリティ面でも安心してタスクを実行できます。  
+  
+<br>
+  
+## 前提条件
+
+### 開発環境
+* **Go**: 1.25.6+
+* **Docker / Docker Compose**: Required
+  
+### 実行用ツール
+* **Git**: Required
+* **GitHub CLI**: Required
+* **ローカルAIツール**: Required
+  * ローカルで動作する Gemini CLI 等が必要です。
+  
+  <br>
+  
+## 開発用ツール
+
+* **staticcheck**: [dominikh/go-tools](https://github.com/dominikh/go-tools)  
+  
+<br>
+  
+## 使用ライブラリ
+  
+* **TUI**: [rivo/tview](https://github.com/rivo/tview)  
+* **Configuration:** [knadh/koanf](https://github.com/knadh/koanf)  
+  
+<br>
+  
+## 使い方
+  
+<br>
+  

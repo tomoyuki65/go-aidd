@@ -21,3 +21,44 @@ Executed tasks can be processed using local AI tools.
   
 <br>
   
+## Motivation
+AI-driven development is expected to become a central approach in future software development.  
+To work efficiently in AI-driven development, it is important to break down tasks during the design phase into a format that AI can easily process, and handle them appropriately using AI tools.  
+  
+This tool aggregates multiple divided AI tasks into `task.md`, allowing you to select a task and have it processed by AI immediately. By executing tasks in parallel, you can significantly accelerate your development speed.  
+  
+Additionally, by leveraging AI tools running locally, you can avoid unnecessary network costs and execute tasks securely.  
+  
+<br>
+  
+## Prerequisites
+  
+### Environment
+* **Go**: 1.25.6+
+* **Docker / Docker Compose**: Required
+  
+### Execution tools
+* **Git**: Required
+* **GitHub CLI**: Required
+* **Local AI Tools**: Required
+  * A Gemini CLI or similar tool that runs locally is required.
+  
+<br>
+  
+## Tools
+  
+* **staticcheck**: [dominikh/go-tools](https://github.com/dominikh/go-tools)  
+  
+<br>
+  
+## Libraries
+  
+* **TUI**: [rivo/tview](https://github.com/rivo/tview)  
+* **Configuration:** [knadh/koanf](https://github.com/knadh/koanf)  
+  
+<br>
+  
+## Usage
+  
+<br>
+  
