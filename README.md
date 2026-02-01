@@ -154,7 +154,7 @@ The following options are available.
 #### 1. 「・Retrieve the issue information and create or update task.md.」
 Selecting this option retrieves task information based on your configuration and consolidates it into `src/task.md`.  
   
-> ※ If the task content contains images, the image files are downloaded in PNG format to the 「src/images directory」. The image URLs included in the task content are then replaced with the file paths of the downloaded images.  
+> ※ If the task content contains images, the image files are downloaded in PNG format to the 「src/images」directory. The image URLs included in the task content are then replaced with the file paths of the downloaded images.  
   
 > ※ You can also manually create the file. A sample file 「src/task.example.md」 is provided; rename it and adjust the layout to create your own file if needed.  
   
