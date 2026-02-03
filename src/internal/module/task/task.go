@@ -56,6 +56,24 @@ func getTaskMdPath() (string, error) {
 	return taskMdPath, nil
 }
 
+// Add the processed branch name to completed_tasks.txt
+func addCompletedTaskToTxt(currentDir, branchName string) error {
+	path := filepath.Join(currentDir, "src", "completed_tasks.txt")
+
+	// Open the file in append mode (create it if it doesn't exist)
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return errors.New("failed to open completed_tasks.txt")
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(fmt.Sprintf("%s\n", branchName)); err != nil {
+		return errors.New("failed to write to completed_tasks.txt")
+	}
+
+	return nil
+}
+
 // Load task information from task.md
 func LoadTaskMd() ([]Task, error) {
 	// Open task.md
@@ -246,6 +264,12 @@ func RunTask(cfg *config.Config, task Task) error {
 		if err != nil {
 			os.Chdir(currentDir)
 			return fmt.Errorf("failed to git push: %w", err)
+		}
+
+		// Append the pushed branch name to completed_tasks.txt
+		if err := addCompletedTaskToTxt(currentDir, branchName); err != nil {
+			os.Chdir(currentDir)
+			return fmt.Errorf("failed to addCompletedTaskToTxt: %w", err)
 		}
 
 		// Create a pull request
