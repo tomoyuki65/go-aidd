@@ -28,6 +28,8 @@ task:
   list_page_size: 5
   # Set to true to skip RunTask（for local development）
   skip_run_task: false
+  # Set to true to skip ExecuteAdditionalRevision（for local development）
+  skip_exec_revision: false
 ai:
   # Options:
   #   - Gemini CLI

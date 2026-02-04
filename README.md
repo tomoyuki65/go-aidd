@@ -151,7 +151,7 @@ make run-windows
 After launching the app, a TUI menu will be displayed.  
 The following options are available.  
   
-#### 1. 「・Retrieve the issue information and create or update task.md.」
+#### 1. 「・Retrieve issues and generate/update task.md」
 Selecting this option retrieves task information based on your configuration and consolidates it into `src/task.md`.  
   
 > ※ If the task content contains images, the image files are downloaded in PNG format to the 「src/images」directory. The image URLs included in the task content are then replaced with the file paths of the downloaded images.  
@@ -160,15 +160,26 @@ Selecting this option retrieves task information based on your configuration and
   
 <br>
   
-#### 2. 「・Read task.md and display the list of tasks.」
+#### 2. 「・Load tasks from task.md and execute a task」
 This option reads task information from `src/task.md` and displays a task list.  
 Selecting a task shows its details, and you can execute it by selecting forms using the TAB key.  
   
 > ※ Before executing tasks, make sure to clone the target repository under the work directory.  
   
+> ※ The branch name of a task that has been pushed to Git after edits will be appended to `src/completed_tasks.txt`.  
+  
 <br>
   
-#### 3. 「Quit」
+#### 3. 「・Edit completed task branches」
+Selecting this menu will display a list of branch names for completed tasks from `src/completed_tasks.txt`.  
+When you select a target branch name, a form for making edits will appear.  
+After entering the changes in the input field and pressing Enter to confirm, you can press the TAB key to select Execute and run the process.  
+  
+> ※ Before executing the edit process, make sure to clone the target repository and branch under the work directory, and then run the task.  
+  
+<br>
+  
+#### 4. 「Quit」
 This option exits the application.  
   
 <br>
