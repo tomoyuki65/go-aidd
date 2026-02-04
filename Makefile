@@ -1,6 +1,11 @@
 APP_NAME := aidd
 CMD_PATH := cmd/aidd/main.go
-BIN_PATH := src/bin/$(APP_NAME)
+CHECK_FILE := $(firstword $(wildcard ./src/bin/$(APP_NAME)*))
+ifneq ($(CHECK_FILE),)
+	BIN_PATH := ./src/bin/$(APP_NAME)
+else
+	BIN_PATH := ./$(APP_NAME)
+endif
 
 # Declaration of command-only targets
 .PHONY: build-docker build-mac build-linux build-windows run-mac run-linux run-windows

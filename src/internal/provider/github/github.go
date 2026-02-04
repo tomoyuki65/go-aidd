@@ -48,6 +48,11 @@ func GenerateTaskMd(repository, label string) error {
 		return fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
+	// Create the src directory
+	if err := os.MkdirAll("src", 0755); err != nil {
+		return fmt.Errorf("failed to create src directory: %w", err)
+	}
+
 	// Write to task.md
 	file, err := os.Create(filepath.Join("src", "task.md"))
 	if err != nil {
