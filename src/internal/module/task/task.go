@@ -22,6 +22,10 @@ type Task struct {
 	Body   string
 }
 
+type CompletedTask struct {
+	BranchName string
+}
+
 // Generate "task.md" from task information
 func GenerateTaskMd(cfg *config.Config) error {
 	// Switch processing by provider
@@ -35,10 +39,10 @@ func GenerateTaskMd(cfg *config.Config) error {
 	}
 }
 
-func getTaskMdPath() (string, error) {
+func getFilePath(fileName string) (string, error) {
 	searchPaths := []string{
-		"task.md",
-		filepath.Join("src", "task.md"),
+		fileName,
+		filepath.Join("src", fileName),
 	}
 
 	var taskMdPath string
@@ -50,10 +54,61 @@ func getTaskMdPath() (string, error) {
 	}
 
 	if taskMdPath == "" {
-		return "", errors.New("no task.md found in search paths")
+		return "", fmt.Errorf("no %s found in search paths", fileName)
 	}
 
 	return taskMdPath, nil
+}
+
+// Create commands for Git Clone
+func createCmdForGitClone(cfg *config.Config, branchName string) (*exec.Cmd, error) {
+	switch cfg.GitHub.CloneType {
+	case "SSH":
+		repositoryURL := fmt.Sprintf("git@github.com:%s.git", cfg.GitHub.Repository)
+		cmd := exec.Command("git", "clone", "-b", branchName, "--single-branch", repositoryURL)
+		return cmd, nil
+	case "HTTPS":
+		repositoryURL := fmt.Sprintf("https://github.com/%s.git", cfg.GitHub.Repository)
+		cmd := exec.Command("git", "clone", "-b", branchName, "--single-branch", repositoryURL)
+		return cmd, nil
+	case "GitHub CLI":
+		cmd := exec.Command("gh", "repo", "clone", cfg.GitHub.Repository, "--branch", branchName, "--single-branch")
+		return cmd, nil
+	default:
+		return nil, errors.New("unsupported clone type is set")
+	}
+}
+
+// Create commands for AI processing
+func createCmdForAiProcessing(cfg *config.Config, prompt string) (*exec.Cmd, error) {
+	switch cfg.AI.Type {
+	case "Gemini CLI":
+		cmd := exec.Command("gemini", "-p", prompt, "-y")
+		if len(cfg.AI.Model) > 0 {
+			cmd.Args = append(cmd.Args, "-m", cfg.AI.Model)
+		}
+		return cmd, nil
+	case "Claude Code":
+		cmd := exec.Command("claude", "-p", prompt, "-y")
+		if len(cfg.AI.Model) > 0 {
+			cmd.Args = append(cmd.Args, "-m", cfg.AI.Model)
+		}
+		return cmd, nil
+	case "Codex":
+		cmd := exec.Command("codex", "-y", prompt)
+		if len(cfg.AI.Model) > 0 {
+			cmd = exec.Command("codex", "-y", "--model", cfg.AI.Model, prompt)
+		}
+		return cmd, nil
+	case "GitHub Copilot CLI":
+		cmd := exec.Command("copilot", "-p", prompt, "--allow-all-tools")
+		if len(cfg.AI.Model) > 0 {
+			cmd.Args = append(cmd.Args, "--model", cfg.AI.Model)
+		}
+		return cmd, nil
+	default:
+		return nil, errors.New("unsupported AI type is set")
+	}
 }
 
 // Add the processed branch name to completed_tasks.txt
@@ -77,7 +132,7 @@ func addCompletedTaskToTxt(currentDir, branchName string) error {
 // Load task information from task.md
 func LoadTaskMd() ([]Task, error) {
 	// Open task.md
-	taskMdPath, err := getTaskMdPath()
+	taskMdPath, err := getFilePath("task.md")
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +197,49 @@ func LoadTaskMd() ([]Task, error) {
 	return tasks, nil
 }
 
+// Load the branch names of completed tasks from completed_tasks.txt
+func LoadCompletedTasks() ([]CompletedTask, error) {
+	// Open completed_tasks.txt
+	completedTasksTxtPath, err := getFilePath("completed_tasks.txt")
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Open(completedTasksTxtPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// /Get the branch name of a completed task
+	var completedTasks []CompletedTask
+	scanner := bufio.NewScanner(file)
+	lineNum := 0
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		lineNum++
+
+		// Skip empty lines
+		if line == "" {
+			continue
+		}
+
+		// Remove the newline character
+		branchName := strings.ReplaceAll(line, "\r\n", "")
+
+		completedTasks = append(completedTasks, CompletedTask{
+			BranchName: branchName,
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return completedTasks, nil
+}
+
 // Task execution process
 func RunTask(cfg *config.Config, task Task) error {
 	// Skip if the task’s skip_run_task in the config is true
@@ -162,20 +260,10 @@ func RunTask(cfg *config.Config, task Task) error {
 	os.Chdir(workDir)
 
 	// Clone the target repository and move into its directory
-	var cmdGitClone *exec.Cmd
-	switch cfg.GitHub.CloneType {
-	case "SSH":
-		repositoryURL := fmt.Sprintf("git@github.com:%s.git", cfg.GitHub.Repository)
-		cmdGitClone = exec.Command("git", "clone", "-b", cfg.GitHub.CloneBranch, "--single-branch", repositoryURL)
-	case "HTTPS":
-		repositoryURL := fmt.Sprintf("https://github.com/%s.git", cfg.GitHub.Repository)
-		cmdGitClone = exec.Command("git", "clone", "-b", cfg.GitHub.CloneBranch, "--single-branch", repositoryURL)
-	case "GitHub CLI":
-		cmdGitClone = exec.Command("gh", "repo", "clone", cfg.GitHub.Repository, "--branch", cfg.GitHub.CloneBranch, "--single-branch")
-	default:
-		// Return to the current directory
+	cmdGitClone, err := createCmdForGitClone(cfg, cfg.GitHub.CloneBranch)
+	if err != nil {
 		os.Chdir(currentDir)
-		return errors.New("unsupported clone type is set")
+		return fmt.Errorf("failed to create cmdGitClone: %w", err)
 	}
 
 	_, err = cmdGitClone.Output()
@@ -208,31 +296,10 @@ func RunTask(cfg *config.Config, task Task) error {
 	}
 
 	// Execute the task
-	var cmdRunTask *exec.Cmd
-	switch cfg.AI.Type {
-	case "Gemini CLI":
-		cmdRunTask = exec.Command("gemini", "-p", task.Body, "-y")
-		if len(cfg.AI.Model) > 0 {
-			cmdRunTask.Args = append(cmdRunTask.Args, "-m", cfg.AI.Model)
-		}
-	case "Claude Code":
-		cmdRunTask = exec.Command("claude", "-p", task.Body, "-y")
-		if len(cfg.AI.Model) > 0 {
-			cmdRunTask.Args = append(cmdRunTask.Args, "-m", cfg.AI.Model)
-		}
-	case "Codex":
-		cmdRunTask = exec.Command("codex", "-y", task.Body)
-		if len(cfg.AI.Model) > 0 {
-			cmdRunTask = exec.Command("codex", "-y", "--model", cfg.AI.Model, task.Body)
-		}
-	case "GitHub Copilot CLI":
-		cmdRunTask = exec.Command("copilot", "-p", task.Body, "--allow-all-tools")
-		if len(cfg.AI.Model) > 0 {
-			cmdRunTask.Args = append(cmdRunTask.Args, "--model", cfg.AI.Model)
-		}
-	default:
+	cmdRunTask, err := createCmdForAiProcessing(cfg, task.Body)
+	if err != nil {
 		os.Chdir(currentDir)
-		return errors.New("unsupported AI type is set")
+		return fmt.Errorf("failed to create cmdRunTask: %w", err)
 	}
 
 	_, err = cmdRunTask.Output()
@@ -292,6 +359,99 @@ func RunTask(cfg *config.Config, task Task) error {
 			if err != nil {
 				os.Chdir(currentDir)
 				return fmt.Errorf("failed to create pull request: %w", err)
+			}
+		}
+	}
+
+	// Return to the current directory
+	os.Chdir(currentDir)
+
+	return nil
+}
+
+// Execute additional revision process
+func ExecuteAdditionalRevision(cfg *config.Config, branchName, revisionDetails string) error {
+	// Skip if the task’s skip_exec_revision in the config is true
+	if cfg.Task.SkipExecRevision {
+		return nil
+	}
+
+	// Get the current directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	// Create and move to the work directory
+	timestamp := time.Now().Format("20060102_150405")
+	taskName := strings.Split(branchName, "/")[1]
+	workDir := filepath.Join(".", "work", fmt.Sprintf("revision_%s_%s", taskName, timestamp))
+	// workDir := filepath.Join(".", "work", fmt.Sprintf("%s_%s", branchName, timestamp))
+	os.MkdirAll(workDir, 0755)
+	os.Chdir(workDir)
+
+	// Clone the target repository and move into its directory
+	cmdGitClone, err := createCmdForGitClone(cfg, branchName)
+	if err != nil {
+		os.Chdir(currentDir)
+		return fmt.Errorf("failed to create cmdGitClone: %w", err)
+	}
+
+	_, err = cmdGitClone.Output()
+	if err != nil {
+		os.Chdir(currentDir)
+		return fmt.Errorf("failed to clone repository: %w", err)
+	}
+
+	repoName := strings.Split(cfg.GitHub.Repository, "/")[1]
+	os.Chdir(repoName)
+
+	// Execute re revise
+	cmdReRevise, err := createCmdForAiProcessing(cfg, revisionDetails)
+	if err != nil {
+		os.Chdir(currentDir)
+		return fmt.Errorf("failed to create cmdReRevise: %w", err)
+	}
+
+	_, err = cmdReRevise.Output()
+	if err != nil {
+		os.Chdir(currentDir)
+		return fmt.Errorf("failed to run re revise process: %w", err)
+	}
+
+	// Commit process
+	cmdGitAdd := exec.Command("git", "add", "-A")
+	_, err = cmdGitAdd.Output()
+	if err != nil {
+		os.Chdir(currentDir)
+		return fmt.Errorf("failed to git add files: %w", err)
+	}
+
+	commitMsg := fmt.Sprintf("aidd: [%s_%s] Revision", branchName, timestamp)
+	cmdGitCommit := exec.Command("git", "commit", "-m", commitMsg)
+	_, err = cmdGitCommit.Output()
+	if err != nil {
+		os.Chdir(currentDir)
+		return fmt.Errorf("failed to git commit: %w", err)
+	}
+
+	// Push to GitHub
+	if cfg.GitHub.PushBranchOnComplete {
+		cmdGitPush := exec.Command("git", "push", "-u", "origin", branchName)
+		_, err = cmdGitPush.Output()
+		if err != nil {
+			os.Chdir(currentDir)
+			return fmt.Errorf("failed to git push: %w", err)
+		}
+
+		// Add a comment with the correction details to the PR (assuming the PR has already been created)
+		if cfg.GitHub.CreatePrOnComplete {
+			bodyText := fmt.Sprintf("【Revision details】\n%s", revisionDetails)
+			cmdAddCommentToPR := exec.Command("gh", "pr", "comment", "--body", bodyText)
+			_, err = cmdAddCommentToPR.Output()
+			if err != nil {
+				os.Chdir(currentDir)
+				return fmt.Errorf("failed to add comment to PR: %w", err)
 			}
 		}
 	}

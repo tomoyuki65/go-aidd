@@ -151,7 +151,7 @@ make run-windows
 アプリを起動するとTUIでメニューが表示されます。   
 以下のメニューがあり、それぞれ実行できます。  
   
-#### 1. 「・Retrieve the issue information and create or update task.md.」
+#### 1. 「・Retrieve issues and generate/update task.md」
 このメニューを選択するとコンフィグ設定の内容をもとにしたタスク情報を取得し、`src/task.md`にタスク情報を集約します。  
   
 > ※ タスク内容に画像が含まれていた場合、画像ファイルを「src/images」に.png形式でダウンロードします。そしてタスク内容に含まれている画像のURLをダウンロードした画像のファイルのパスに変換しています。  
@@ -160,15 +160,26 @@ make run-windows
   
 <br>
   
-#### 2. 「・Read task.md and display the list of tasks.」
+#### 2. 「・Load tasks from task.md and execute a task」
 このメニューを選択すると`src/task.md`からタスク情報を読み込んでタスク一覧を表示します。  
 対象のタスクを選択するとタスクの詳細が表示され、TABキーでフォームを選択してタスクを実行できます。  
   
 > ※ タスクを実行する際は、事前に対象のリポジトリをworkディレクトリ配下にクローンしてからタスクを実行するようにしています。  
   
+> ※ 修正後にGit Pushしたタスクのブランチ名は、`src/completed_tasks.txt`に追記されます。  
+  
 <br>
   
-#### 3. 「Quit」
+#### 3. 「・Edit completed task branches」
+このメニューを選択すると`src/completed_tasks.txt`から完了済みタスクのブランチ名の一覧を表示します。  
+対象のブランチ名を選択すると修正処理用フォームが表示されます。  
+入力フィールドに修正内容を入力してEnterキーで決定後、TABキーでExecuteを選択して実行できます。  
+  
+> ※ 修正処理を実行する際は、事前に対象のリポジトリおよびブランチをworkディレクトリ配下にクローンしてからタスクを実行するようにしています。  
+  
+<br>
+  
+#### 4. 「Quit」
 このメニューを選択するとアプリを終了します。
   
 <br>
