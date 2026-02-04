@@ -18,6 +18,7 @@ Executed tasks can be processed using local AI tools.
 * **TUI Display**: Show a list of tasks in a terminal-based UI.  
 * **Task Execution**: Execute tasks using local AI tools (e.g., Gemini CLI).  
 * **Automatic PR Creation**: Automatically create a pull request after task completion.  
+* **Rework**: Apply additional changes to branches of completed tasks.  
   
 <br>
   
